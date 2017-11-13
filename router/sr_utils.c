@@ -131,7 +131,7 @@ uint16_t tcp_cksum(void* packet, unsigned int len) {
   sr_ip_hdr_t *ip_hdr = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
   sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
 
-  int tcp_len = len - sizof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t);
+  int tcp_len = len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t);
   int pseudo_len = sizeof(sr_tcp_pseudo_hdr_t) + tcp_len;
 
   /* construct pseudo TCP header */
