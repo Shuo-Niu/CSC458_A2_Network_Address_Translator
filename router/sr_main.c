@@ -45,6 +45,15 @@ extern char* optarg;
 #define DEFAULT_RTABLE "rtable"
 #define DEFAULT_TOPO 0
 
+/*-----------NAT COMMAND LINE FLAGS------------*/
+/* according to the assignment instruction */
+#define DEFAULT_ICMP_QUERY_TIMEOUT 60
+#define DEFAULT_TCP_ESTABLISHED_IDLE_TIMEOUT 7440
+#define DEFAULT_TCP_TRANSITORY_IDLE_TIMEOUT 300
+#define MIN_TCP_ESTABLISHED_IDLE_TIMEOUT 7440
+#define MIN_TCP_TRANSITORY_IDLE_TIMEOUT 240
+/*---------------------------------------------*/
+
 static void usage(char* );
 static void sr_init_instance(struct sr_instance* );
 static void sr_destroy_instance(struct sr_instance* );
@@ -67,9 +76,16 @@ int main(int argc, char **argv)
     char *logfile = 0;
     struct sr_instance sr;
 
+    /*-----------NAT COMMAND LINE FLAGS------------*/
+    bool nat_enabled = false;
+    int icmp_query_timeout = DEFAULT_ICMP_QUERY_TIMEOUT;
+    int tcp_established_idle_timeout = DEFAULT_TCP_ESTABLISHED_IDLE_TIMEOUT;
+    int tcp_transitory_idle_timeout = DEFAULT_TCP_TRANSITORY_IDLE_TIMEOUT;
+    /*---------------------------------------------*/
+
     printf("Using %s\n", VERSION_INFO);
 
-    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:")) != EOF)
+    while ((c = getopt(argc, argv, "hs:v:p:u:t:r:l:T:n:I:E:R")) != EOF)
     {
         switch (c)
         {
@@ -101,6 +117,28 @@ int main(int argc, char **argv)
             case 'T':
                 template = optarg;
                 break;
+            /*-----------NAT COMMAND LINE FLAGS------------*/
+            case 'n':
+                nat_enabled = true;
+                break;
+            case 'I':
+                icmp_query_timeout = atoi((char*) optarg);
+                break;
+            case 'E':
+                tcp_established_idle_timeout = atoi((char*) optarg);
+                if(tcp_established_idle_timeout < MIN_TCP_ESTABLISHED_IDLE_TIMEOUT) {
+                    fprintf(stderr, "TCP established idle timeout (E) must be >= %d seconds.\n", MIN_TCP_ESTABLISHED_IDLE_TIMEOUT);
+                    return -1;
+                }
+                break;
+            case 'R':
+                tcp_transitory_idle_timeout = atoi((char*) optarg);
+                if(tcp_transitory_idle_timeout < MIN_TCP_TRANSITORY_IDLE_TIMEOUT) {
+                    fprintf(stderr, "TCP transitory timeout (R) must >= %d seconds.\n", MIN_TCP_TRANSITORY_IDLE_TIMEOUT);
+                    return -1;
+                }
+                break;
+            /*---------------------------------------------*/
         } /* switch */
     } /* -- while -- */
 
@@ -156,6 +194,18 @@ int main(int argc, char **argv)
       sr_load_rt_wrap(&sr, rtable);
     }
 
+    /* NAT config */
+    if(nat_enabled) {
+        Debug("NAT enabled.\n");
+    } else {
+        Debug("NAT disabled.\n");
+    }
+    sr.nat_enabled = nat_enabled;
+    sr.nat.icmp_query_timeout = icmp_query_timeout;
+    sr.nat.tcp_established_idle_timeout = tcp_established_idle_timeout;
+    sr.nat.tcp_transitory_idle_timeout = tcp_transitory_idle_timeout;
+    sr.nat.sr = &sr;
+
     /* call router init (for arp subsystem etc.) */
     sr_init(&sr);
 
@@ -179,8 +229,9 @@ static void usage(char* argv0)
     printf("           [-T template_name] [-u username] \n");
     printf("           [-t topo id] [-r routing table] \n");
     printf("           [-l log file] \n");
-    printf("   defaults server=%s port=%d host=%s  \n",
-            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST );
+    printf("           [-I icmp query timeout] [-E tcp established idle timeout] [-R tcp transitory idle timeout] \n");
+    printf("   defaults server=%s port=%d host=%s I=%d E=%d R=%d \n",
+            DEFAULT_SERVER, DEFAULT_PORT, DEFAULT_HOST, DEFAULT_ICMP_QUERY_TIMEOUT, DEFAULT_TCP_ESTABLISHED_IDLE_TIMEOUT, DEFAULT_TCP_TRANSITORY_IDLE_TIMEOUT );
 } /* -- usage -- */
 
 /*-----------------------------------------------------------------------------

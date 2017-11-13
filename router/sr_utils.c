@@ -126,6 +126,78 @@ int verify_icmp(uint8_t* packet, unsigned int len) {
   return 0;
 }
 
+/* Custom method: calculate TCP checksum */
+uint16_t tcp_cksum(void* packet, unsigned int len) {
+  sr_ip_hdr_t *ip_hdr = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
+  sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+
+  int tcp_len = len - sizof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t);
+  int pseudo_len = sizeof(sr_tcp_pseudo_hdr_t) + tcp_len;
+
+  /* construct pseudo TCP header */
+  sr_tcp_pseudo_hdr_t *pseudo = (sr_tcp_pseudo_hdr_t*)malloc(pseudo_len);
+  pseudo->ip_src = ip_hdr->ip_src;
+  pseudo->ip_dst = ip_hdr->ip_dst;
+  pseudo->reserved = 0;
+  pseudo->ip_p = ip_protocol_tcp;
+  pseudo->tcp_len = htons(tcp_len);
+  memcpy((uint8_t*)pseudo + sizeof(sr_tcp_pseudo_hdr_t), (uint8_t*)tcp_hdr, tcp_len);
+
+  /* calculate checksum */
+  uint16_t checksum = cksum(pseudo, pseudo_len);
+
+  free(pseudo);
+  return checksum;
+}
+
+/* Custom method: sanity-check TCP packet */
+int verify_tcp(uint8_t *packet, unsigned int len) {
+  uint8_t *payload = (packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+  sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)payload;
+
+  /* verify the length of header */
+  if(tcp_hdr->offset < 5) {
+    printf("Error: verify_tcp: header too short.\n");
+    return -1;
+  }
+
+  /* verify the checksum */
+  uint16_t received_checksum = tcp_hdr->checksum;
+  tcp_hdr->checksum = 0;
+  uint16_t true_checksum = tcp_cksum(packet, len);
+  tcp_hdr->checksum = received_checksum;
+  if(received_checksum != true_checksum) {
+    printf("Error: verify_tcp: checksum didn't match.\n");
+    return -1;
+  }
+
+  return 0;
+}
+
+/* Custom method: prints out fields in TCP header */
+/* modified from provided 'print_hdr_ip()' */
+void print_hdr_tcp(uint8_t *buf) {
+  sr_tcp_hdr_t *tcphdr = (sr_tcp_hdr_t*)buf;
+  fprintf(stderr, "TCP header:\n");
+  fprintf(stderr, "\tsource port: %d\n", ntohs(tcphdr->src_port));
+  fprintf(stderr, "\tdestination port: %d\n", ntohs(tcphdr->dst_port));
+  fprintf(stderr, "\tsequence number: %d\n", ntohs(tcphdr->seq));
+  fprintf(stderr, "\tacknowledgement: %d\n", ntohs(tcphdr->ack));
+  fprintf(stderr, "\toffset: %d\n", ntohs(tcphdr->offset));
+
+  fprintf(stderr, "\tCWR: %d\n", tcphdr->cwr);
+  fprintf(stderr, "\tECE: %d\n", tcphdr->ece);
+  fprintf(stderr, "\tURG: %d\n", tcphdr->urg);
+  fprintf(stderr, "\tACK: %d\n", tcphdr->ack);
+  fprintf(stderr, "\tPSH: %d\n", tcphdr->psh);
+  fprintf(stderr, "\tRST: %d\n", tcphdr->rst);
+  fprintf(stderr, "\tSYN: %d\n", tcphdr->syn);
+  fprintf(stderr, "\tFIN: %d\n", tcphdr->fin);
+
+  fprintf(stderr, "\twindow size: %d\n", tcphdr->window_size);
+  fprintf(stderr, "\tchecksum: %d\n", tcphdr->checksum);
+  fprintf(stderr, "\turgent pointer: %d\n", tcphdr->urgent);
+}
 
 /* Prints out fields in Ethernet header. */
 void print_hdr_eth(uint8_t *buf) {
@@ -230,6 +302,14 @@ void print_hdrs(uint8_t *buf, uint32_t length) {
         fprintf(stderr, "Failed to print ICMP header, insufficient length\n");
       else
         print_hdr_icmp(buf + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
+    } 
+    /* modified from ==ip_protocol_icmp above */
+    else if(ip_proto == ip_protocol_tcp) { /* TCP */
+      minlength += sizeof(sr_tcp_hdr_t);
+      if(length < minlength)
+        fprintf(stderr, "Failed to print TCP header, insufficient length\n");
+      else
+        print_hdr_tcp(buf + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
     }
   }
   else if (ethtype == ethertype_arp) { /* ARP */

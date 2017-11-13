@@ -83,6 +83,8 @@ struct sr_icmp_hdr {
   uint8_t icmp_type;
   uint8_t icmp_code;
   uint16_t icmp_sum;
+  uint16_t icmp_id;
+  uint16_t icmp_seq;
   
 } __attribute__ ((packed)) ;
 typedef struct sr_icmp_hdr sr_icmp_hdr_t;
@@ -123,6 +125,46 @@ enum icmp_time_exceeded_code {
     icmp_time_exceeded_reassembly = 1,
 };
 
+struct sr_tcp_hdr {
+  uint16_t src_port;
+  uint16_t dst_port;
+  uint32_t seq; /* sequence number */
+  uint32_t acknowledgment;
+  uint8_t offset;
+#if __BYTE_ORDER == __LITTLE_ENDIAN
+  unsigned int fin:1;
+  unsigned int syn:1;
+  unsigned int rst:1;
+  unsigned int psh:1;
+  unsigned int ack:1;
+  unsigned int urg:1;
+  unsigned int ece:1;
+  unsigned int cwr:1;
+#elif __BYTE_ORDER == __BIG_ENDIAN
+  unsigned int cwr:1;
+  unsigned int ece:1;
+  unsigned int urg:1;
+  unsigned int ack:1;
+  unsigned int psh:1;
+  unsigned int rst:1;
+  unsigned int syn:1;
+  unsigned int fin:1;
+#endif
+  uint16_t window_size;
+  uint16_t checksum;
+  uint16_t urgent; /* urgent pointer */
+} __attribute__ ((packed));
+typedef struct sr_tcp_hdr sr_tcp_hdr_t;
+
+struct sr_tcp_pseudo_hdr {
+  uint32_t ip_src;
+  uint32_t ip_dst;
+  uint8_t reserved;
+  uint8_t ip_p;
+  uint16_t tcp_len;
+} __attribute__ ((packed));
+typedef struct sr_tcp_pseudo_hdr sr_tcp_pseudo_hdr_t;
+
 /*
  * Structure of an internet header, naked of options.
  */
@@ -135,7 +177,7 @@ struct sr_ip_hdr
     unsigned int ip_v:4;		/* version */
     unsigned int ip_hl:4;		/* header length */
 #else
-#error "Byte ordering ot specified " 
+#error "Byte ordering not specified " 
 #endif 
     uint8_t ip_tos;			/* type of service */
     uint16_t ip_len;			/* total length */
@@ -172,8 +214,8 @@ typedef struct sr_ethernet_hdr sr_ethernet_hdr_t;
 enum sr_ip_protocol {
   ip_protocol_icmp = 0x0001,
   /* Custom */
-  ip_protocol_tcp = 0x0006,
-  ip_protocol_udp = 0x0011,
+  ip_protocol_tcp = 0x0006, /* mandatory */
+  ip_protocol_udp = 0x0011, /* optional */
 };
 
 enum sr_ethertype {
