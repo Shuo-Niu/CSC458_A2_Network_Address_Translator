@@ -77,7 +77,7 @@ int main(int argc, char **argv)
     struct sr_instance sr;
 
     /*-----------NAT COMMAND LINE FLAGS------------*/
-    bool nat_enabled = false;
+    int nat_enabled = 0;
     int icmp_query_timeout = DEFAULT_ICMP_QUERY_TIMEOUT;
     int tcp_established_idle_timeout = DEFAULT_TCP_ESTABLISHED_IDLE_TIMEOUT;
     int tcp_transitory_idle_timeout = DEFAULT_TCP_TRANSITORY_IDLE_TIMEOUT;
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
                 break;
             /*-----------NAT COMMAND LINE FLAGS------------*/
             case 'n':
-                nat_enabled = true;
+                nat_enabled = 1;
                 break;
             case 'I':
                 icmp_query_timeout = atoi((char*) optarg);
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
     }
 
     /* NAT config */
-    if(nat_enabled) {
+    if(nat_enabled == 1) {
         Debug("NAT enabled.\n");
     } else {
         Debug("NAT disabled.\n");

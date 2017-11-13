@@ -182,7 +182,7 @@ void print_hdr_tcp(uint8_t *buf) {
   fprintf(stderr, "\tsource port: %d\n", ntohs(tcphdr->src_port));
   fprintf(stderr, "\tdestination port: %d\n", ntohs(tcphdr->dst_port));
   fprintf(stderr, "\tsequence number: %d\n", ntohs(tcphdr->seq));
-  fprintf(stderr, "\tacknowledgement: %d\n", ntohs(tcphdr->ack));
+  fprintf(stderr, "\tacknowledgment: %d\n", ntohs(tcphdr->ack));
   fprintf(stderr, "\toffset: %d\n", ntohs(tcphdr->offset));
 
   fprintf(stderr, "\tCWR: %d\n", tcphdr->cwr);

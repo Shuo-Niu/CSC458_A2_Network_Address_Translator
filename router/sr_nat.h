@@ -19,16 +19,6 @@ typedef enum {
   /* nat_mapping_udp, */
 } sr_nat_mapping_type;
 
-struct sr_nat_connection {
-  /* add TCP connection state data members here */
-  uint32_t ip;
-  uint32_t client_seq;
-  uint32_t server_seq;
-  sr_tcp_connection_state state;
-  time_t last_updated;
-  struct sr_nat_connection *next;
-};
-
 typedef enum {
   tcp_state_listen,
   tcp_state_syn_sent,
@@ -42,6 +32,16 @@ typedef enum {
   tcp_state_time_wait,
   tcp_state_closed,
 } sr_tcp_connection_state;
+
+struct sr_nat_connection {
+  /* add TCP connection state data members here */
+  uint32_t ip;
+  uint32_t client_seq;
+  uint32_t server_seq;
+  sr_tcp_connection_state state;
+  time_t last_updated;
+  struct sr_nat_connection *next;
+};
 
 struct sr_nat_mapping {
   sr_nat_mapping_type type;

@@ -107,7 +107,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
           sr_nat_remove_mapping(nat, mapping, prev_mapping);
         }
       } else if(mapping->type == nat_mapping_tcp) {
-        bool remove_mapping = true;
+        int remove_mapping = 1;
         struct sr_nat_connection *prev_conn = NULL;
         struct sr_nat_connection *conn = mapping->conns;
         while(conn) {
@@ -120,7 +120,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
               if(difftime(curtime, conn->last_updated) > nat->tcp_established_idle_timeout) {
                 sr_nat_remove_conn(nat, mapping, conn, prev_conn);
               } else {
-                remove_mapping = false;
+                remove_mapping = 0;
               }
               break;
             }
@@ -133,7 +133,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
               if(difftime(curtime, conn->last_updated) > nat->tcp_transitory_idle_timeout) {
                 sr_nat_remove_conn(nat, mapping, conn, prev_conn);
               } else {
-                remove_mapping = false;
+                remove_mapping = 0;
               }
               break;
             }
@@ -147,7 +147,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
           conn = conn->next;
         }
         
-        if(remove_mapping) {
+        if(remove_mapping == 1) {
           sr_nat_remove_mapping(nat, mapping, prev_mapping);
         }
       }

@@ -57,7 +57,7 @@ struct sr_instance
     FILE* logfile;
 
     /* NAT */
-    bool nat_enabled;
+    int nat_enabled;
     struct sr_nat nat;
 };
 
