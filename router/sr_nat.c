@@ -234,12 +234,12 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 
   if(type == nat_mapping_icmp) {
     mapping->aux_ext = next_icmp_port++;
-    if(next_icmp_port >= MAX_NAT_PORT) {
+    if(next_icmp_port > MAX_NAT_PORT) {
       next_icmp_port = MIN_NAT_PORT;
     }
   } else if(type == nat_mapping_tcp) {
     mapping->aux_ext = next_tcp_port++;
-    if(next_tcp_port >= MAX_NAT_PORT) {
+    if(next_tcp_port > MAX_NAT_PORT) {
       next_tcp_port = MIN_NAT_PORT;
     }
   }

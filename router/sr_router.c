@@ -517,7 +517,7 @@ void handle_ip_nat(struct sr_instance *sr, uint8_t *packet, unsigned int len, ch
                     }
 
                     if(ntohs(tcp_hdr->dst_port) < MIN_NAT_PORT) {
-                        printf("Error: handle_ip_nat: unavailable TCP port.\n");
+                        printf("Error: handle_ip_nat: restricted TCP port.\n");
                         send_icmp_msg(sr, packet, len, icmp_type_dest_unreachable, icmp_dest_unreachable_port);
                         return;
                     }
