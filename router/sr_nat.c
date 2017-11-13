@@ -147,7 +147,7 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
           conn = conn->next;
         }
         
-        if(remove_mapping == 1) {
+        if(remove_mapping) {
           sr_nat_remove_mapping(nat, mapping, prev_mapping);
         }
       }

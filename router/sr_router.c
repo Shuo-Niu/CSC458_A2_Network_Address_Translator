@@ -50,7 +50,7 @@ void sr_init(struct sr_instance* sr)
     pthread_create(&thread, &(sr->attr), sr_arpcache_timeout, sr);
     
     /* Add initialization code here! */
-    if(sr->nat_enabled == 1) {
+    if(sr->nat_enabled) {
         sr_nat_init(&(sr->nat));
     }
 } /* -- sr_init -- */
@@ -291,7 +291,7 @@ void handle_ip(struct sr_instance* sr, uint8_t* packet, unsigned int len, char* 
     }
 
     /* handle NAT */
-    if(sr->nat_enabled == 1) {
+    if(sr->nat_enabled) {
         handle_ip_nat(sr, packet, len, interface);
         return;
     }
