@@ -247,7 +247,7 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   mapping->next = nat->mappings;
   nat->mappings = mapping;
 
-  struct sr_nat_mapping *copy = (struct sr_nat_mapping*)malloc(sizeof(struct sr_nat_mapping))  
+  struct sr_nat_mapping *copy = (struct sr_nat_mapping*)malloc(sizeof(struct sr_nat_mapping));
   memcpy(copy, mapping, sizeof(struct sr_nat_mapping));
 
   pthread_mutex_unlock(&(nat->lock));
@@ -257,10 +257,10 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 /* Custom: remove a mapping from the nat's mapping table */
 void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_mapping *prev_mapping) {
   
-  pthread_mutex_lock(&(nat->lock));
+  /* pthread_mutex_lock(&(nat->lock)); */
 
   if(!prev_mapping) {
-    nat->mapping = mapping->next;
+    nat->mappings = mapping->next;
   } else {
     prev_mapping->next = mapping->next;
   }
@@ -272,13 +272,13 @@ void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *mapping, s
   }
   free(mapping);
 
-  pthread_mutex_unlock(&(nat->lock));
+  /* pthread_mutex_unlock(&(nat->lock)); */
 }
 
 /* Custom: get a connection from the mapping's connection table */
 struct sr_nat_connection *sr_nat_get_conn(struct sr_nat_mapping *mapping, uint32_t ip) {
   
-  pthread_mutex_lock(&(nat->lock));
+  /* pthread_mutex_lock(&(nat->lock)); */
 
   struct sr_nat_connection *copy = NULL;
   struct sr_nat_connection *conn = mapping->conns;
@@ -292,7 +292,7 @@ struct sr_nat_connection *sr_nat_get_conn(struct sr_nat_mapping *mapping, uint32
     conn = conn->next;
   }
 
-  pthread_mutex_unlock(&(nat->lock));
+  /* pthread_mutex_unlock(&(nat->lock)); */
   return copy;
 }
 
