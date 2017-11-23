@@ -617,10 +617,12 @@ void handle_ip_nat(struct sr_instance *sr, uint8_t *packet, unsigned int len, ch
             }
         } else {
             /* server -[packet]-> client */
-            printf("Packet destined to client.\n");
-            /*
-             * try swapping the content of if{} and else{}
-             */
+            /*printf("Packet destined to client.\n");*/
+            
+            printf("Packet destined to elsewhere.\n");
+            
+            send_icmp_msg(sr, packet, len, icmp_type_dest_unreachable, icmp_dest_unreachable_port);
+
             return;
         }
 
