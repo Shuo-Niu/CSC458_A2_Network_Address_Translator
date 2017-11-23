@@ -77,6 +77,7 @@ int main(int argc, char **argv)
     struct sr_instance sr;
 
     /*-----------NAT COMMAND LINE FLAGS------------*/
+    /*--------------Initialization-----------------*/
     int nat_enabled = 0;
     int icmp_query_timeout = DEFAULT_ICMP_QUERY_TIMEOUT;
     int tcp_established_idle_timeout = DEFAULT_TCP_ESTABLISHED_IDLE_TIMEOUT;
@@ -134,7 +135,7 @@ int main(int argc, char **argv)
             case 'R':
                 tcp_transitory_idle_timeout = atoi((char*) optarg);
                 if(tcp_transitory_idle_timeout < MIN_TCP_TRANSITORY_IDLE_TIMEOUT) {
-                    fprintf(stderr, "TCP transitory timeout (R) must >= %d seconds.\n", MIN_TCP_TRANSITORY_IDLE_TIMEOUT);
+                    fprintf(stderr, "TCP transitory idle timeout (R) must be >= %d seconds.\n", MIN_TCP_TRANSITORY_IDLE_TIMEOUT);
                     return -1;
                 }
                 break;

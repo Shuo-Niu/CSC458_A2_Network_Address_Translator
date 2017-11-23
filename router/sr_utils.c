@@ -127,27 +127,27 @@ int verify_icmp(uint8_t* packet, unsigned int len) {
 }
 
 /* Custom method: calculate TCP checksum */
-uint16_t tcp_cksum(void* packet, unsigned int len) {
+uint16_t tcp_hdr_cksum(void* packet, unsigned int len) {
   sr_ip_hdr_t *ip_hdr = (sr_ip_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t));
   sr_tcp_hdr_t *tcp_hdr = (sr_tcp_hdr_t*)(packet + sizeof(sr_ethernet_hdr_t) + sizeof(sr_ip_hdr_t));
 
   int tcp_len = len - sizeof(sr_ethernet_hdr_t) - sizeof(sr_ip_hdr_t);
-  int pseudo_len = sizeof(sr_tcp_pseudo_hdr_t) + tcp_len;
+  int pseudo_tcp_len = sizeof(sr_pseudo_tcp_hdr_t) + tcp_len;
 
   /* construct pseudo TCP header */
-  sr_tcp_pseudo_hdr_t *pseudo = (sr_tcp_pseudo_hdr_t*)malloc(pseudo_len);
-  pseudo->ip_src = ip_hdr->ip_src;
-  pseudo->ip_dst = ip_hdr->ip_dst;
-  pseudo->reserved = 0;
-  pseudo->ip_p = ip_protocol_tcp;
-  pseudo->tcp_len = htons(tcp_len);
-  memcpy((uint8_t*)pseudo + sizeof(sr_tcp_pseudo_hdr_t), (uint8_t*)tcp_hdr, tcp_len);
+  sr_pseudo_tcp_hdr_t *pseudo_tcp_hdr = (sr_pseudo_tcp_hdr_t*)malloc(pseudo_tcp_len);
+  pseudo_tcp_hdr->ip_src = ip_hdr->ip_src;
+  pseudo_tcp_hdr->ip_dst = ip_hdr->ip_dst;
+  pseudo_tcp_hdr->reserved = 0;
+  pseudo_tcp_hdr->ip_p = ip_protocol_tcp;
+  pseudo_tcp_hdr->tcp_len = htons(tcp_len);
+  memcpy((uint8_t*)pseudo_tcp_hdr + sizeof(sr_pseudo_tcp_hdr_t), (uint8_t*)tcp_hdr, tcp_len);
 
   /* calculate checksum */
-  uint16_t checksum = cksum(pseudo, pseudo_len);
+  uint16_t cksum = cksum(pseudo_tcp_hdr, pseudo_tcp_len);
 
-  free(pseudo);
-  return checksum;
+  free(pseudo_tcp_hdr);
+  return cksum;
 }
 
 /* Custom method: sanity-check TCP packet */
@@ -164,7 +164,7 @@ int verify_tcp(uint8_t *packet, unsigned int len) {
   /* verify the checksum */
   uint16_t received_checksum = tcp_hdr->checksum;
   tcp_hdr->checksum = 0;
-  uint16_t true_checksum = tcp_cksum(packet, len);
+  uint16_t true_checksum = tcp_hdr_cksum(packet, len);
   tcp_hdr->checksum = received_checksum;
   if(received_checksum != true_checksum) {
     printf("Error: verify_tcp: checksum didn't match.\n");

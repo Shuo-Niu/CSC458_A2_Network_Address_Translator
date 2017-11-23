@@ -9,7 +9,7 @@
 /* do not use the well-known ports (0 - 1023) */
 #define MIN_NAT_PORT 1024 
 #define MAX_NAT_PORT 65535
-
+/* define name of NAT interfaces for convenience */
 #define NAT_INT_INTF "eth1"
 #define NAT_EXT_INTF "eth2"
 
@@ -35,14 +35,16 @@ typedef enum {
 
 struct sr_nat_connection {
   /* add TCP connection state data members here */
-  uint32_t ip;
-  uint32_t client_seq;
-  uint32_t server_seq;
+  uint32_t ip; /* external server IP */
+  uint32_t client_seq; /* client sequence number */
+  uint32_t server_seq; /* server sequence number */
   sr_tcp_connection_state state;
   time_t last_updated;
-  struct sr_nat_connection *next;
+  struct sr_nat_connection *next; /* linked list structure */
 };
 
+/* src(ip_int, aux_int) -> NAT(ip_ext, aux_ext) */
+/* the external IP addrs are identical for all mappings behind one NAT */
 struct sr_nat_mapping {
   sr_nat_mapping_type type;
   uint32_t ip_int; /* internal ip addr */
@@ -51,7 +53,7 @@ struct sr_nat_mapping {
   uint16_t aux_ext; /* external port or icmp id */
   time_t last_updated; /* use to timeout mappings */
   struct sr_nat_connection *conns; /* list of connections. null for ICMP */
-  struct sr_nat_mapping *next;
+  struct sr_nat_mapping *next; /* linked list structure */
 };
 
 struct sr_nat_tcp_syn {

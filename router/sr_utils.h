@@ -37,12 +37,12 @@ void print_addr_eth(uint8_t *addr);
 void print_addr_ip(struct in_addr address);
 void print_addr_ip_int(uint32_t ip);
 
-/* Custom method: convert IP int to string */
+/* Custom methods */
 void addr_ip_int(char* buf, uint32_t ip);
 int verify_ip(sr_ip_hdr_t*);
 int verify_icmp(uint8_t*, unsigned int);
 int verify_tcp(uint8_t*, unsigned int);
-uint16_t tcp_cksum(void* packet, unsigned int len);
+uint16_t tcp_hdr_cksum(void* packet, unsigned int len);
 void print_hdr_tcp(uint8_t *buf);
 
 void print_hdr_eth(uint8_t *buf);
