@@ -144,10 +144,10 @@ uint16_t tcp_hdr_cksum(void* packet, unsigned int len) {
   memcpy((uint8_t*)pseudo_tcp_hdr + sizeof(sr_pseudo_tcp_hdr_t), (uint8_t*)tcp_hdr, tcp_len);
 
   /* calculate checksum */
-  uint16_t cksum = cksum(pseudo_tcp_hdr, pseudo_tcp_len);
+  uint16_t checksum = cksum(pseudo_tcp_hdr, pseudo_tcp_len);
 
   free(pseudo_tcp_hdr);
-  return cksum;
+  return checksum;
 }
 
 /* Custom method: sanity-check TCP packet */
