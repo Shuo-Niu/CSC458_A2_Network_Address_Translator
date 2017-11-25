@@ -32,7 +32,7 @@ int sr_nat_init(struct sr_nat *nat) { /* Initializes the nat */
 
   /* Initialize any variables here */
   nat->mappings = NULL;
-  nat->incoming = NULL;
+  nat->inbounds = NULL;
   next_tcp_port = MIN_NAT_PORT;
   next_icmp_port = MIN_NAT_PORT;
 
@@ -53,12 +53,12 @@ int sr_nat_destroy(struct sr_nat *nat) {  /* Destroys the nat (free memory) */
     free(mapping_to_destroy);
   }
 
-  /* free linked list structured incoming SYNs */
-  struct sr_nat_tcp_syn *incoming = nat->incoming;
-  while(incoming){
-    struct sr_nat_tcp_syn *incoming_syn_to_destroy = incoming;
-    incoming = incoming->next;
-    free(incoming_syn_to_destroy);
+  /* free linked list structured inbound SYNs */
+  struct sr_nat_tcp_syn *inbound = nat->inbounds;
+  while(inbound){
+    struct sr_nat_tcp_syn *inbound_syn_to_destroy = inbound;
+    inbound = inbound->next;
+    free(inbound_syn_to_destroy);
   }
 
   pthread_kill(nat->thread, SIGKILL);
@@ -75,29 +75,29 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
 
     time_t current = time(NULL);
 
-    /* Handle incoming SYNs */
-    struct sr_nat_tcp_syn *prev_incoming = NULL;
-    struct sr_nat_tcp_syn *incoming = nat->incoming;
-    while(incoming) { /* traverse all incoming SYNs */
+    /* Handle inbound SYNs */
+    struct sr_nat_tcp_syn *prev_inbound = NULL;
+    struct sr_nat_tcp_syn *curr_inbound = nat->inbounds;
+    while(curr_inbound) { /* traverse all inbound SYNs */
       /* do not respond to unsolicited inbound SYN packet for at least 6 seconds */
-      if(difftime(current, incoming->last_received) > 6) {
-        struct sr_nat_mapping *mapping = sr_nat_lookup_external(nat, incoming->port, nat_mapping_tcp);
+      if(difftime(current, curr_inbound->last_received) > 6) {
+        struct sr_nat_mapping *mapping = sr_nat_lookup_external(nat, curr_inbound->port, nat_mapping_tcp);
         if(!mapping) {
-          send_icmp_msg(nat->sr, incoming->packet, incoming->len, icmp_type_dest_unreachable, icmp_dest_unreachable_port);
+          send_icmp_msg(nat->sr, curr_inbound->packet, curr_inbound->len, icmp_type_dest_unreachable, icmp_dest_unreachable_port);
         }
 
         /* removing from list */
-        if(prev_incoming) { /* not linked list head */
-          prev_incoming->next = incoming->next;
+        if(prev_inbound) { /* not linked list head */
+          prev_inbound->next = curr_inbound->next;
         } else { /* linked list head */
-          nat->incoming = incoming->next;
+          nat->inbounds = curr_inbound->next;
         }
 
-        free(incoming->packet);
-        free(incoming);
+        free(curr_inbound->packet);
+        free(curr_inbound);
       } else {
-        prev_incoming = incoming;
-        incoming = incoming->next;
+        prev_inbound = curr_inbound;
+        curr_inbound = curr_inbound->next;
       }
     }
     /* handle periodic tasks here */
@@ -274,24 +274,24 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
 }
 
 /* Custom: remove a map entry from NAT's mapping table */
-void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_mapping *prev_mapping) {
+void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *curr_mapping, struct sr_nat_mapping *prev_mapping) {
   
   pthread_mutex_lock(&(nat->lock));
 
   /* remove this map entry from the linked list structured mapping table */
   if(!prev_mapping) {
-    nat->mappings = mapping->next;
+    nat->mappings = curr_mapping->next;
   } else {
-    prev_mapping->next = mapping->next;
+    prev_mapping->next = curr_mapping->next;
   }
 
   /* destroy all associated connections, then destroy this map entry */
-  struct sr_nat_connection *conn = mapping->conns;
+  struct sr_nat_connection *conn = curr_mapping->conns;
   while(conn) {
     free(conn);
     conn = conn->next;
   }
-  free(mapping);
+  free(curr_mapping);
 
   pthread_mutex_unlock(&(nat->lock));
 }
@@ -340,15 +340,15 @@ struct sr_nat_connection *sr_nat_add_conn(struct sr_nat_mapping *mapping, uint32
 }
 
 /* Custom: remove a connection from the mapping's connection table */
-void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_connection *conn, struct sr_nat_connection *prev_conn) {
+void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_connection *curr_conn, struct sr_nat_connection *prev_conn) {
   
   pthread_mutex_lock(&(nat->lock));
   
   /* remove this connection from the mapping table */
   if(!prev_conn) { /* head */
-    mapping->conns = conn->next;
+    mapping->conns = curr_conn->next;
   } else { /* not head */
-    prev_conn->next = conn->next;
+    prev_conn->next = curr_conn->next;
   }
 
   free(conn);
@@ -356,30 +356,30 @@ void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, stru
   pthread_mutex_unlock(&(nat->lock));
 }
 
-/* Custom: add the incoming TCP SYN connection */
-void add_incoming_syn(struct sr_nat *nat, uint32_t src_ip, uint16_t src_port, uint8_t *packet, unsigned int len) {
-  struct sr_nat_tcp_syn *incoming = nat->incoming;
+/* Custom: add the inbound TCP SYN connection */
+void add_inbound_syn(struct sr_nat *nat, uint32_t src_ip, uint16_t src_port, uint8_t *packet, unsigned int len) {
+  struct sr_nat_tcp_syn *inbound = nat->inbounds;
 
-  /* traverse all incoming SYNs */
-  while(incoming) {
+  /* traverse all inbound SYNs */
+  while(inbound) {
     /* do not add the duplicate if this SYN is already existed */
-    if((incoming->ip == src_ip) && (incoming->port == src_port)) {
+    if((inbound->ip == src_ip) && (inbound->port == src_port)) {
       return;
     }
-    incoming = incoming->next;
+    inbound = inbound->next;
   }
 
   /* construct the SYN */
-  incoming = (struct sr_nat_tcp_syn*)malloc(sizeof(struct sr_nat_tcp_syn));
-  incoming->ip = src_ip;
-  incoming->port = src_port;
-  incoming->packet = (uint8_t*)malloc(len);
-  memcpy(incoming->packet, packet, len);
-  incoming->len = len;
-  incoming->last_received = time(NULL);
+  inbound = (struct sr_nat_tcp_syn*)malloc(sizeof(struct sr_nat_tcp_syn));
+  inbound->ip = src_ip;
+  inbound->port = src_port;
+  inbound->packet = (uint8_t*)malloc(len);
+  memcpy(inbound->packet, packet, len);
+  inbound->len = len;
+  inbound->last_received = time(NULL);
 
-  /* insert this SYN to the head of incoming SYN table */
+  /* insert this SYN to the head of inbound SYN table */
   /* in this case, it is unrelated whether the original table is NULL */
-  incoming->next = nat->incoming;
-  nat->incoming = incoming;
+  inbound->next = nat->inbounds;
+  nat->inbounds = inbound;
 }

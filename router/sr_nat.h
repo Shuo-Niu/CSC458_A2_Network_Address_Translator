@@ -68,7 +68,7 @@ struct sr_nat_tcp_syn {
 struct sr_nat {
   /* add any fields here */
   struct sr_nat_mapping *mappings;
-  struct sr_nat_tcp_syn *incoming;
+  struct sr_nat_tcp_syn *inbounds;
 
   int icmp_query_timeout;
   int tcp_established_idle_timeout;
@@ -103,11 +103,11 @@ struct sr_nat_mapping *sr_nat_insert_mapping(struct sr_nat *nat,
   uint32_t ip_int, uint16_t aux_int, sr_nat_mapping_type type );
 
 /* Custom */
-void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_mapping *prev_mapping);
+void sr_nat_remove_mapping(struct sr_nat *nat, struct sr_nat_mapping *curr_mapping, struct sr_nat_mapping *prev_mapping);
 struct sr_nat_connection *sr_nat_get_conn(struct sr_nat_mapping *mapping, uint32_t ip);
 struct sr_nat_connection *sr_nat_add_conn(struct sr_nat_mapping *mapping, uint32_t ip);
-void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_connection *conn, struct sr_nat_connection *prev_conn);
-void add_incoming_syn(struct sr_nat *nat, uint32_t src_ip, uint16_t src_port, uint8_t *packet, unsigned int len);
+void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, struct sr_nat_connection *curr_conn, struct sr_nat_connection *prev_conn);
+void add_inbound_syn(struct sr_nat *nat, uint32_t src_ip, uint16_t src_port, uint8_t *packet, unsigned int len);
 
 
 #endif
