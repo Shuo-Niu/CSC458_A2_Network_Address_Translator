@@ -351,7 +351,7 @@ void sr_nat_remove_conn(struct sr_nat *nat, struct sr_nat_mapping *mapping, stru
     prev_conn->next = curr_conn->next;
   }
 
-  free(conn);
+  free(curr_conn);
 
   pthread_mutex_unlock(&(nat->lock));
 }
