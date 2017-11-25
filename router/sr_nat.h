@@ -20,17 +20,17 @@ typedef enum {
 } sr_nat_mapping_type;
 
 typedef enum {
-  tcp_state_listen,
-  tcp_state_syn_sent,
-  tcp_state_syn_received,
-  tcp_state_established,
-  tcp_state_fin_wait_1,
-  tcp_state_fin_wait_2,
-  tcp_state_close_wait,
-  tcp_state_closing,
-  tcp_state_last_ack,
-  tcp_state_time_wait,
-  tcp_state_closed,
+  tcp_listen,
+  tcp_syn_sent,
+  tcp_syn_received,
+  tcp_established,
+  tcp_fin_wait_1,
+  tcp_fin_wait_2,
+  tcp_close_wait,
+  tcp_close,
+  tcp_last_ack,
+  tcp_time_wait,
+  tcp_closed,
 } sr_tcp_connection_state;
 
 struct sr_nat_connection {
@@ -38,7 +38,7 @@ struct sr_nat_connection {
   uint32_t ip; /* external server IP */
   uint32_t client_seq; /* client sequence number */
   uint32_t server_seq; /* server sequence number */
-  sr_tcp_connection_state state;
+  sr_tcp_connection_state tcp_state;
   time_t last_updated;
   struct sr_nat_connection *next; /* linked list structure */
 };

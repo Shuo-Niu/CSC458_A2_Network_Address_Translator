@@ -89,82 +89,19 @@ void *sr_nat_timeout(void *nat_ptr) {  /* Periodic Timeout handling */
         /* removing from list */
         if(prev_inbound) { /* not linked list head */
           prev_inbound->next = curr_inbound->next;
+          free(curr_inbound->packet);
+          free(curr_inbound);
+          curr_inbound = prev_inbound->next;
         } else { /* linked list head */
           nat->inbounds = curr_inbound->next;
+          free(curr_inbound->packet);
+          free(curr_inbound);
+          curr_inbound = nat->inbounds;
         }
-
-        free(curr_inbound->packet);
-        free(curr_inbound);
       } else {
         prev_inbound = curr_inbound;
         curr_inbound = curr_inbound->next;
       }
-    }
-    /* handle periodic tasks here */
-    struct sr_nat_mapping *prev_mapping = NULL;
-    struct sr_nat_mapping *mapping = nat->mappings;
-    while(mapping) {
-      /* if this is an ICMP mapping */
-      if(mapping->type == nat_mapping_icmp) {
-        /* remove this mapping if ICMP query timeout */
-        if(difftime(current, mapping->last_updated) > nat->icmp_query_timeout) {
-          sr_nat_remove_mapping(nat, mapping, prev_mapping);
-        }
-      } 
-      /* if this is a TCP mapping */
-      else if(mapping->type == nat_mapping_tcp) {
-        int remove_mapping = 1;
-        struct sr_nat_connection *prev_conn = NULL;
-        struct sr_nat_connection *conn = mapping->conns;
-        while(conn) {
-          switch(conn->state) {
-            case tcp_state_established:
-            case tcp_state_fin_wait_1:
-            case tcp_state_fin_wait_2:
-            case tcp_state_close_wait:
-            {
-              /* remove this connection if TCP established idle timeout */
-              if(difftime(current, conn->last_updated) > nat->tcp_established_idle_timeout) {
-                sr_nat_remove_conn(nat, mapping, conn, prev_conn);
-              } else {
-                /* do not remove this mapping if any associated connection is not timeout */
-                remove_mapping = 0;
-              }
-              break;
-            }
-
-            case tcp_state_syn_sent:
-            case tcp_state_syn_received:
-            case tcp_state_last_ack:
-            case tcp_state_closing:
-            {
-              /* remove this connection if TCP transitory idle timeout */
-              if(difftime(current, conn->last_updated) > nat->tcp_transitory_idle_timeout) {
-                sr_nat_remove_conn(nat, mapping, conn, prev_conn);
-              } else {
-                /* do not remove this mapping if any associated connection is not timeout */
-                remove_mapping = 0;
-              }
-              break;
-            }
-
-            default: {
-              break;
-            }
-          }
-
-          prev_conn = conn;
-          conn = conn->next; /* linked list structure */
-        }
-        
-        /* check if there is any connection left */
-        if(remove_mapping) {
-          sr_nat_remove_mapping(nat, mapping, prev_mapping);
-        }
-      }
-
-      prev_mapping = mapping;
-      mapping = mapping->next; /* linked list structure */
     }
 
     pthread_mutex_unlock(&(nat->lock));
@@ -327,7 +264,7 @@ struct sr_nat_connection *sr_nat_add_conn(struct sr_nat_mapping *mapping, uint32
   struct sr_nat_connection *conn = (struct sr_nat_connection*)malloc(sizeof(struct sr_nat_connection));
   memset(conn, 0, sizeof(struct sr_nat_connection));
   conn->ip = ip;
-  conn->state = tcp_state_closed;
+  conn->tcp_state = tcp_closed;
   conn->last_updated = time(NULL);
 
   /* insert this connection to the head of mapping's connection table */
